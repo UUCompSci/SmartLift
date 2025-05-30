@@ -1,4 +1,5 @@
 import numpy as np
+import csv
 
 a = [2,4,6]
 b = [0,0,0]
@@ -17,6 +18,7 @@ def calculate_angle(a,b,c):  #function only works in two dimensions as written
     return angle
 
 #attempt at 3d rendering
+
 '''def calculate_angle(a,b,c):
     a = np.array(a)  # first landmark
     b = np.array(b)  # second landmark
@@ -38,4 +40,11 @@ def calculate_angle(a,b,c):  #function only works in two dimensions as written
         angle = 360 - angle
     return angle'''
 
-calculate_angle(a, b, c)
+def save_to_csv(data, filename):
+    with open(filename, 'w', newline='') as csvfile:
+        fieldnames = data.keys()
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+        writer.writerow(data)
+
