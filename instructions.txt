@@ -1,0 +1,12 @@
+install python 3.11 (or earlier) and set it as your interpreter
+
+libraries required:
+    npzviewer - pip install npzviewer - used to view the large npz files that are otherwise hard to interpret
+    numpy
+    mediapipe
+    opencv - pip install opencv-python
+
+upload your video into the videos folder. Make sure the name of the lift (e.g. squat, bench, or deadlift
+is the first word in the title). The data for your joint positions and angles is collected and separated
+into a different subfolder in data as an npz file (good for storing large amounts of array-like data).
+run python-m npzviewer to start npzviewer, and open the desired files to see the joint/point data.
