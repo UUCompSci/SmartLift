@@ -1,9 +1,10 @@
 import numpy as np
 import csv
+import sys
+import os
+import math
 
-a = [2,4,6]
-b = [0,0,0]
-c = [-1,3,2]
+
 def calculate_angle(a,b,c):  #function only works in two dimensions as written
     a = np.array(a)  #first landmark
     b = np.array(b)  #second landmark
@@ -17,7 +18,7 @@ def calculate_angle(a,b,c):  #function only works in two dimensions as written
 
     return angle
 
-#attempt at 3d rendering
+#attempt at 3d rendering. Would need Depth Camera for more accuracy
 
 '''def calculate_angle(a,b,c):
     a = np.array(a)  # first landmark
@@ -47,4 +48,40 @@ def save_to_csv(data, filename):
 
         writer.writeheader()
         writer.writerow(data)
+
+
+
+from pathlib import Path
+
+def save_lift_data(lift_name, new_points, new_angles, filename_tag):
+    # Get path to this file (e.g., functions.py), then go up one level to project root
+    script_dir = Path(__file__).resolve().parent.parent
+    data_dir = script_dir / 'data' / f"{lift_name} files"
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    points_path = data_dir / f"{lift_name} points.npz"
+    angles_path = data_dir / f"{lift_name} angles.npz"
+
+    # Load existing .npz contents if they exist
+    if points_path.exists():
+        existing_points = dict(np.load(points_path, allow_pickle=True))
+    else:
+        existing_points = {}
+
+    if angles_path.exists():
+        existing_angles = dict(np.load(angles_path, allow_pickle=True))
+    else:
+        existing_angles = {}
+
+    # Add new data to existing
+    for k, v in new_points.items():
+        existing_points[f"{filename_tag}_{k}"] = v
+
+    for k, v in new_angles.items():
+        existing_angles[f"{filename_tag}_{k}"] = v
+
+    # Save combined data
+    np.savez(points_path, **existing_points)
+    np.savez(angles_path, **existing_angles)
+
 
