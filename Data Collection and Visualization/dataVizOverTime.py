@@ -1,8 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import os
 
-data = np.load(r"C:\Users\alexk\PycharmProjects\SeniorProject\data\deadlift files\deadlift angles.npz")
+
+script_dir = os.path.dirname(os.path.abspath("main.ipynb"))
+data_dir = os.path.join(script_dir, '..', 'training data')
+data = np.load(f"{data_dir}\\deadlift files\\deadlift angles.npz")
 
 for key in data:
     joint_data = data[key]
@@ -34,7 +38,6 @@ for key in data:
     frames = range(10, len(joint_data) + 10, 5)
     anim = FuncAnimation(fig, update, frames=frames, blit=True, repeat=False)
 
-    # Save as GIF (no need for ImageMagick if pillow writer is default)
-    anim.save(f"{key}_angle_animation.gif", fps=10)
-
+    #anim.save(f"{key}_angle_animation.gif", fps=10)
+    plt.show()
     plt.close(fig)
