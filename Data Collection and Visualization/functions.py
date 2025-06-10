@@ -24,22 +24,22 @@ def calculate_angle(a,b,c):  #function only works in two dimensions as written
     a = np.array(a)  # first landmark
     b = np.array(b)  # second landmark
     c = np.array(c)  # third landmark
-    
+    # VECTORIZE POINTS
     ab = a[0] - b[0], a[1] - b[1], a[2] - b[2]
     cb = c[0] - b[0], c[1] - b[1], c[2] - b[2]
-    
     dot = 0
+    #COMPUTE DOT PRODUCT
     for i in range(3):
         dot += ab[i] * cb[i]
-    
+    #COMPUTE NORM OF VECTORS
     abNorm = math.sqrt(ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2)
     cbNorm = math.sqrt(cb[0] ** 2 + cb[1] ** 2 + cb[2] ** 2)
-    
+    #CALCULATE ANGLE
     angle = np.degrees(np.arccos(dot / (abNorm * cbNorm)))
-    
     if angle > 180.0:
         angle = 360 - angle
     return angle'''
+
 
 def save_to_csv(data, filename):
     with open(filename, 'w', newline='') as csvfile:
