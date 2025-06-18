@@ -59,29 +59,31 @@ def save_lift_data(lift_name, new_points, new_angles, filename_tag):
     data_dir = script_dir / 'training data' / f"{lift_name} files"
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    points_path = data_dir / f"{lift_name} points.npz"
-    angles_path = data_dir / f"{lift_name} angles.npz"
+    lift_data_path = data_dir / f"{lift_name} lift data.npz"
+    #angles_path = data_dir / f"{lift_name} angles.npz"
 
     # Load existing .npz contents if they exist
-    if points_path.exists():
-        existing_points = dict(np.load(points_path, allow_pickle=True))
+    if lift_data_path.exists():
+        existing_data = dict(np.load(lift_data_path, allow_pickle=True))
     else:
-        existing_points = {}
+        existing_data = {}
 
-    if angles_path.exists():
+    '''if angles_path.exists():
         existing_angles = dict(np.load(angles_path, allow_pickle=True))
     else:
-        existing_angles = {}
+        existing_angles = {}'''
+
 
     # Add new data to existing
     for k, v in new_points.items():
-        existing_points[f"{filename_tag}_{k}"] = v
+
+        existing_data[f"{filename_tag}_{k}"] = v
 
     for k, v in new_angles.items():
-        existing_angles[f"{filename_tag}_{k}"] = v
+        existing_data[f"{filename_tag}_{k}"] = v
 
     # Save combined data
-    np.savez(points_path, **existing_points)
-    np.savez(angles_path, **existing_angles)
+    np.savez(lift_data_path, **existing_data)
+    #np.savez(angles_path, **existing_angles)
 
 
