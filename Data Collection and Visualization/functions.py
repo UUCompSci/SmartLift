@@ -5,6 +5,7 @@ import os
 import math
 
 
+
 def calculate_angle(a,b,c):  #function only works in two dimensions as written
     a = np.array(a)  #first landmark
     b = np.array(b)  #second landmark
