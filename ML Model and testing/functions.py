@@ -3,6 +3,43 @@ import csv
 import sys
 import os
 import math
+import torch
+
+landmark_indeces_to_labels = {
+    0: "nose",
+    1: "left eye inner",
+    2: "left eye",
+    3: "left eye outer",
+    4: "right eye inner",
+    5: "right eye",
+    6: "right eye outer",
+    7: "left ear",
+    8: "right ear",
+    9: "mouth left",
+    10: "mouth right",
+    11: "left shoulder",
+    12: "right shoulder",
+    13: "left elbow",
+    14: "right elbow",
+    15: "left wrist",
+    16: "right wrist",
+    17: "left pinky",
+    18: "right pinky",
+    19: "left index",
+    20: "right index",
+    21: "left thumb",
+    22: "right thumb",
+    23: "left hip",
+    24: "right hip",
+    25: "left knee",
+    26: "right knee",
+    27: "left ankle",
+    28: "right ankle",
+    29: "left heel",
+    30: "right heel",
+    31: "left foot index",
+    32: "right foot index"
+}
 
 
 def calculate_angle(a,b,c):  #function only works in two dimensions as written
@@ -52,4 +89,31 @@ def save_lift_data(lift_name, new_points, new_angles, filename_tag):
     np.savez(points_path, **existing_points)
     np.savez(angles_path, **existing_angles)
 
+
+# Function of how to determine the side of the lift.
+# Useful if we only have data for one side of the body (like in bench)
+# Take the average landmark distance FOR EACH landmark, and then average
+# them together
+#
+# essentially just taking the average of the averages
+
+def determineSide(lift_to_examime: str, z_coordinates: dict):
+    left_coords = []
+    right_coords = []
+
+    for i in range(11, 32):
+
+        if "left" in landmark_indeces_to_labels[i]:
+            #print(f'{lift_to_examime} {landmark_indeces_to_labels[i]} z coordinates', torch.mean(z_coordinates[f'{lift_to_examime} {landmark_indeces_to_labels[i]} z coordinates']))
+            left_coords.append(torch.mean(z_coordinates[f'{lift_to_examime} {landmark_indeces_to_labels[i]} z coordinates']).item())
+        if "right" in landmark_indeces_to_labels[i]:
+            #print(f'{lift_to_examime} {landmark_indeces_to_labels[i]} z coordinates', torch.mean(z_coordinates[f'{lift_to_examime} {landmark_indeces_to_labels[i]} z coordinates']))
+            right_coords.append(torch.mean(z_coordinates[f'{lift_to_examime} {landmark_indeces_to_labels[i]} z coordinates']).item())
+    print("The lower the z coordinate, the closer to the camera")
+    print("Mean of the mean left side landmark z distance: " + str(np.mean(left_coords)))
+    print("Mean of the mean right side landmark z distance: " + str(np.mean(right_coords)))
+    if np.mean(left_coords) < np.mean(right_coords):
+        return 'viewing from left'
+    else:
+        return 'viewing from right'
 
