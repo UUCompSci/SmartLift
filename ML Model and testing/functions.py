@@ -97,26 +97,30 @@ def save_lift_data(lift_name, new_points, new_angles, filename_tag):
 #
 # essentially just taking the average of the averages
 
-def determineSide(z_coordinates: dict, lift_to_examine: str):
+def determineSide(lift_dict, lift_name):
+    #for lift_name in lift_dict:
+        #print(lift_name, lift_dict[lift_name].keys())
     left_coords = []
     right_coords = []
 
+    for i in range(11,33):
 
-    for i in range(11, 32):
-
+        #print(f"{' '.join(lift_name.split(' ')[:3])} landmark {i}", functions.landmark_indeces_to_labels[i])
+        landmark = f"{' '.join(lift_name.split(' ')[:3])} landmark {i}"
+        #print(lift_dict[lift_name][landmark])
         if "left" in landmark_indeces_to_labels[i]:
-            #print(f'{lift_to_examime} {landmark_indeces_to_labels[i]} z coordinates', torch.mean(z_coordinates[f'{lift_to_examime} {landmark_indeces_to_labels[i]} z coordinates']))
-            left_coords.append(torch.mean(z_coordinates[f'{lift_to_examine} {landmark_indeces_to_labels[i]} z coordinates']).item())
+            left_coords.append(torch.mean(lift_dict[lift_name][landmark]))
         if "right" in landmark_indeces_to_labels[i]:
-            #print(f'{lift_to_examime} {landmark_indeces_to_labels[i]} z coordinates', torch.mean(z_coordinates[f'{lift_to_examime} {landmark_indeces_to_labels[i]} z coordinates']))
-            right_coords.append(torch.mean(z_coordinates[f'{lift_to_examine} {landmark_indeces_to_labels[i]} z coordinates']).item())
-    print("The lower the z coordinate, the closer to the camera")
-    print("Mean of the mean left side landmark z distance: " + str(np.mean(left_coords)))
-    print("Mean of the mean right side landmark z distance: " + str(np.mean(right_coords)))
+            right_coords.append(torch.mean(lift_dict[lift_name][landmark]))
+
+    # uncomment to print out the left and right coord averages that the decision is based off of
+    # print(np.mean(left_coords), np.mean(right_coords))
+
     if np.mean(left_coords) < np.mean(right_coords):
-        return 'viewing from left'
+        return 'left'
     else:
-        return 'viewing from right'
+        return 'right'
+
 
 
 def get_angle_keys(lift_dict, lift_name):
@@ -130,15 +134,14 @@ def joint_angles_to_list(lift_dict):
         # Ex. stores the name, label, and angles for 'deadlift 1 good lift data' in our DEADLIFT_TENSORS dict
         individual_lift_info = {}
         individual_lift_info['name'] = lift_name.split(' ')[0]
-
-        print(" ".join(lift_name.split(' ')[0:3]))
-
+        individual_lift_info['viewing from'] = determineSide(lift_dict, lift_name)
         individual_lift_info['label'] = lift_name.split(' ')[2]
+
+        # Isolate angles and store them in a separate dict to then append to individual_lift_info
         individual_lift_angles = {}
         for joint in get_angle_keys(lift_dict, lift_name):
             individual_lift_angles[" ".join(joint.split(' ')[3:5])] = lift_dict[lift_name][joint]
-            # print(lift_name, joint, lift_dict[lift_name][joint])
-            # print(" ".join(joint.split(' ')[3:5]))
+
         individual_lift_info['angles'] = individual_lift_angles
         angles_for_entire_lift_dict.append(individual_lift_info)
     #print(angles_for_entire_lift_dict)
