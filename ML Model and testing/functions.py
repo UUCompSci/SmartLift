@@ -90,13 +90,13 @@ def save_lift_data(lift_name, new_points, new_angles, filename_tag):
     np.savez(angles_path, **existing_angles)
 
 
+
 # Function of how to determine the side of the lift.
 # Useful if we only have data for one side of the body (like in bench)
 # Take the average landmark distance FOR EACH landmark, and then average
 # them together
 #
 # essentially just taking the average of the averages
-
 def determineSide(lift_dict, lift_name):
     #for lift_name in lift_dict:
         #print(lift_name, lift_dict[lift_name].keys())
