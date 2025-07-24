@@ -57,7 +57,7 @@ from pathlib import Path
 def save_lift_data(lift_name, new_points, new_angles, filename_tag):
     # Get path to this file (e.g., functions.py), then go up one level to project root
     script_dir = Path(__file__).resolve().parent.parent
-    data_dir = script_dir / 'training data' / f"{lift_name.split(' ')[0]} files"
+    data_dir = script_dir / 'lift data' / f"{lift_name.split(' ')[0]} files"
     data_dir.mkdir(parents=True, exist_ok=True)
 
     lift_data_path = data_dir / f"{lift_name} lift data.npz"
