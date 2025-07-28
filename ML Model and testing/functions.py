@@ -4,6 +4,10 @@ import sys
 import os
 import math
 import torch
+from typing import List, Tuple
+import torch
+import numpy as np
+from scipy.signal import find_peaks
 
 landmark_indeces_to_labels = {
     0: "nose",
@@ -146,3 +150,45 @@ def joint_angles_to_list(lift_dict):
         angles_for_entire_lift_dict.append(individual_lift_info)
     #print(angles_for_entire_lift_dict)
     return angles_for_entire_lift_dict
+
+
+
+def split_lifts_into_reps(lift_list: List[dict], joint) -> List[dict]:
+    rep_samples = []
+    for lift in lift_list:
+        viewing_from = lift['viewing from']
+        motion_joint = viewing_from + " " + joint
+        angles = lift['angles']
+        motion_signal = angles[motion_joint]
+
+        rep_ranges = get_rep_ranges(motion_signal)
+
+        for start, end in rep_ranges:
+            new_sample = {
+                'name': lift['name'],
+                'viewing from': viewing_from,
+                'label': lift['label'],
+                'angles': {}
+            }
+
+            for joint_name, joint_data in angles.items():
+                new_sample['angles'][joint_name] = joint_data[start:end]
+
+            rep_samples.append(new_sample)
+
+    return rep_samples
+
+
+def get_rep_ranges(signal: torch.Tensor, prominence=10, distance=20) -> List[Tuple[int, int]]:
+    y = signal.numpy()
+    # Smooth the signal (optional)
+    smoothed = np.convolve(y, np.ones(5)/5, mode='same')
+
+    # Find valleys (start/end of reps)
+    valleys, _ = find_peaks(-smoothed, prominence=prominence, distance=distance)
+
+    # Backtrack a bit to capture early motion
+    rep_ranges = [(max(valleys[i]-5, 0), min(valleys[i+1]+5, len(y)))
+                  for i in range(len(valleys) - 1)]
+
+    return rep_ranges
