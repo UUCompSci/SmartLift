@@ -131,6 +131,10 @@ def get_angle_keys(lift_dict, lift_name):
     return [key for key in lift_dict[lift_name].keys() if 'landmark' not in key]
 
 
+def get_point_keys(lift_dict, lift_name):
+    return [key for key in lift_dict[lift_name].keys() if 'landmark' in key]
+
+
 def joint_angles_to_list(lift_dict):
     angles_for_entire_lift_dict = []
     for lift_name in lift_dict:
@@ -146,7 +150,12 @@ def joint_angles_to_list(lift_dict):
         for joint in get_angle_keys(lift_dict, lift_name):
             individual_lift_angles[" ".join(joint.split(' ')[3:5])] = lift_dict[lift_name][joint]
 
+        individual_lift_points = {}
+        for point in get_point_keys(lift_dict, lift_name):
+            individual_lift_points[point] = lift_dict[lift_name][point]
+
         individual_lift_info['angles'] = individual_lift_angles
+        individual_lift_info['points'] = individual_lift_points
         angles_for_entire_lift_dict.append(individual_lift_info)
     #print(angles_for_entire_lift_dict)
     return angles_for_entire_lift_dict
