@@ -168,6 +168,7 @@ def split_lifts_into_reps(lift_list: List[dict], joint) -> List[dict]:
         viewing_from = lift['viewing from']
         motion_joint = viewing_from + " " + joint
         angles = lift['angles']
+        points = lift['points']
         motion_signal = angles[motion_joint]
 
         rep_ranges = get_rep_ranges(motion_signal)
@@ -177,12 +178,19 @@ def split_lifts_into_reps(lift_list: List[dict], joint) -> List[dict]:
                 'name': lift['name'],
                 'viewing from': viewing_from,
                 'label': lift['label'],
-                'angles': {}
+                'angles': {},
+                'points': {}
             }
 
             for joint_name, joint_data in angles.items():
                 new_sample['angles'][joint_name] = joint_data[start:end]
 
+
+            for point_name, point_data in points.items():
+                print(point_name, point_data.shape)
+                new_sample['points'][point_name] = ['','','']
+                for row in range(len(point_data)):
+                    new_sample['points'][point_name][row] = point_data[row][start:end]
             rep_samples.append(new_sample)
 
     return rep_samples
