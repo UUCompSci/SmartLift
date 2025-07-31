@@ -187,7 +187,7 @@ def split_lifts_into_reps(lift_list: List[dict], joint) -> List[dict]:
 
 
             for point_name, point_data in points.items():
-                print(point_name, point_data.shape)
+                #print(point_name, point_data.shape)
                 new_sample['points'][point_name] = ['','','']
                 for row in range(len(point_data)):
                     new_sample['points'][point_name][row] = point_data[row][start:end]
