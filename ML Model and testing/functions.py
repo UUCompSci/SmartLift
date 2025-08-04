@@ -162,8 +162,9 @@ def joint_angles_to_list(lift_dict):
 
 
 
-def split_lifts_into_reps(lift_list: List[dict], joint) -> List[dict]:
+def split_lifts_into_reps(lift_name: str, lift_list: List[dict], joint) -> List[dict]:
     rep_samples = []
+
     for lift in lift_list:
         viewing_from = lift['viewing from']
         motion_joint = viewing_from + " " + joint
@@ -171,7 +172,14 @@ def split_lifts_into_reps(lift_list: List[dict], joint) -> List[dict]:
         points = lift['points']
         motion_signal = angles[motion_joint]
 
-        rep_ranges = get_rep_ranges(motion_signal)
+        if lift_name == 'deadlift':
+            depth_thresh, rise_thresh = 110, 170
+        if lift_name == 'squat':
+            depth_thresh, rise_thresh = 100, 170
+        if lift_name == 'bench':
+            depth_thresh, rise_thresh = 100, 160
+
+        rep_ranges = get_rep_ranges(lift_name, motion_signal, depth_thresh, rise_thresh)
 
         for start, end in rep_ranges:
             new_sample = {
@@ -192,20 +200,62 @@ def split_lifts_into_reps(lift_list: List[dict], joint) -> List[dict]:
                 for row in range(len(point_data)):
                     new_sample['points'][point_name][row] = point_data[row][start:end]
             rep_samples.append(new_sample)
-
     return rep_samples
 
 
-def get_rep_ranges(signal: torch.Tensor, prominence=10, distance=20) -> List[Tuple[int, int]]:
-    y = signal.numpy()
-    # Smooth the signal (optional)
-    smoothed = np.convolve(y, np.ones(5)/5, mode='same')
+def get_rep_ranges(lift_name: str, joint_tensor: torch.Tensor, depth_thresh, rise_thresh, min_frames=4):
 
-    # Find valleys (start/end of reps)
-    valleys, _ = find_peaks(-smoothed, prominence=prominence, distance=distance)
+    signal = joint_tensor
+    rep_ranges = []
+    in_rep = False
+    start = 1
+    peaks, valleys = [], []
+    if lift_name != "deadlift":
+        for i in range(1, len(signal)):
+            if signal[i] < rise_thresh and not in_rep:
+                in_rep = True
+                start = i
+            elif signal[i] > rise_thresh and in_rep:
+                end = i
+                if end - start >= min_frames:
+                    rep_ranges.append((start, end))
+                start = None
+                in_rep = False
+                continue
 
-    # Backtrack a bit to capture early motion
-    rep_ranges = [(max(valleys[i]-5, 0), min(valleys[i+1]+5, len(y)))
-                  for i in range(len(valleys) - 1)]
+    else:
+        start = 1
+        ascending = True
+        highest_valley = float('inf')
+        for i in range(1, len(signal)):
+            #print(signal[i], signal[i].dtype)
+            if signal[i - 1] < signal[i] and not ascending and signal[i] < depth_thresh:
+                #print(i, ' valley')
+                valleys.append(i)
+                highest_valley = min(highest_valley, int(signal[i]))
+                end = i - 2
+                if end - start >= min_frames:
+                    rep_ranges.append((start, end))
+                start = i - 1
+                ascending =  True
 
+            elif signal[i - 1] > signal[i] and ascending:
+                #print(i, 'peak')
+                peaks.append(i)
+                ascending = False
+
+            elif signal[i - 1] < signal[i] and not ascending:
+                #print(i, ' hill')
+                ascending = True
+
+        #print(highest_valley)
+        j = 0
+        if len(rep_ranges) > 0:
+            while j < len(signal) and signal[j] < highest_valley:
+                j += 1
+
+            rep_ranges[0] = (j, rep_ranges[0][1])
+        elif len(rep_ranges) == 0:
+            rep_ranges = [(0,len(signal)-1)]
+        print(rep_ranges)
     return rep_ranges
