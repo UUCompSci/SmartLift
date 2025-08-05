@@ -222,26 +222,25 @@ def get_rep_ranges(lift_name: str, joint_tensor: torch.Tensor, depth_thresh, ris
                 start = None
                 in_rep = False
                 continue
-
     else:
         start = 1
         ascending = True
         highest_valley = float('inf')
         for i in range(1, len(signal)):
-            #print(signal[i], signal[i].dtype)
-            if signal[i - 1] < signal[i] and not ascending and signal[i] < depth_thresh:
+
+            if signal[i - 1] < signal[i] and not ascending:
                 #print(i, ' valley')
-                valleys.append(i)
+                valleys.append(i - 1)
                 highest_valley = min(highest_valley, int(signal[i]))
                 end = i - 2
                 if end - start >= min_frames:
                     rep_ranges.append((start, end))
                 start = i - 1
-                ascending =  True
+                ascending = True
 
             elif signal[i - 1] > signal[i] and ascending:
                 #print(i, 'peak')
-                peaks.append(i)
+                peaks.append(i - 1)
                 ascending = False
 
             elif signal[i - 1] < signal[i] and not ascending:
@@ -251,11 +250,14 @@ def get_rep_ranges(lift_name: str, joint_tensor: torch.Tensor, depth_thresh, ris
         #print(highest_valley)
         j = 0
         if len(rep_ranges) > 0:
+
             while j < len(signal) and signal[j] < highest_valley:
                 j += 1
+            valleys.append(j)
+            if j < rep_ranges[0][1]:  # Make sure the new start is before the current end
+                rep_ranges[0] = (j, rep_ranges[0][1])
 
-            rep_ranges[0] = (j, rep_ranges[0][1])
         elif len(rep_ranges) == 0:
-            rep_ranges = [(0,len(signal)-1)]
+            rep_ranges = [(0, len(signal) - 1)]
         print(rep_ranges)
     return rep_ranges
