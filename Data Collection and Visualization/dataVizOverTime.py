@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath("main.ipynb"))
 videos_dir = os.path.join(script_dir, '..', 'videos')
 # Normalize path just in case
 videos_dir = os.path.normpath(videos_dir)
-data_dir = os.path.join(script_dir, '..', 'training data')
+data_dir = os.path.join(script_dir, '..', 'lift data')
 data = np.load(f"{data_dir}\\deadlift files\\deadlift lift data.npz")
 
 for key in data:
