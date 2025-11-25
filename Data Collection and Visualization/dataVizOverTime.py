@@ -10,7 +10,7 @@ videos_dir = os.path.join(script_dir, '..', 'videos')
 # Normalize path just in case
 videos_dir = os.path.normpath(videos_dir)
 data_dir = os.path.join(script_dir, '..', 'lift data')
-data = np.load(f"{data_dir}\\deadlift files\\deadlift lift data.npz")
+data = np.load(f"{data_dir}\\deadlift files\\deadlift 1 good lift data.npz")
 
 for key in data:
     if "landmark" not in key:

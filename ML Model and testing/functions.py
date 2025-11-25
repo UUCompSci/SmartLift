@@ -8,6 +8,11 @@ from typing import List, Tuple
 import torch
 import numpy as np
 from scipy.signal import find_peaks
+import torch
+import pyro
+import pyro.distributions as dist
+from pyro.infer import MCMC, NUTS
+import matplotlib.pyplot as plt
 
 landmark_indeces_to_labels = {
     0: "nose",
@@ -160,6 +165,12 @@ def joint_angles_to_list(lift_dict):
     #print(angles_for_entire_lift_dict)
     return angles_for_entire_lift_dict
 
+import torch
+import torch.nn.functional as F
+
+
+
+
 
 
 def split_lifts_into_reps(lift_name: str, lift_list: List[dict], joint) -> List[dict]:
@@ -261,3 +272,97 @@ def get_rep_ranges(lift_name: str, joint_tensor: torch.Tensor, depth_thresh, ris
             rep_ranges = [(0, len(signal) - 1)]
         print(rep_ranges)
     return rep_ranges
+
+def compute_normal_credible_interval(angle_tensor):
+    """
+    angle_tensor: shape (num_reps, num_frames) as a torch.tensor
+                  e.g., angles_matrix for the knee
+
+    Returns:
+        mean:   (num_frames,)
+        lower:  (num_frames,)
+        upper:  (num_frames,)
+    """
+
+    # Mean across reps (dim=0)
+    mean = angle_tensor.mean(dim=0)
+
+    # Sample std across reps
+    std = angle_tensor.std(dim=0, unbiased=True)
+
+    # Normal approximation CI (population interval)
+    lower = mean - 1.96 * std
+    upper = mean + 1.96 * std
+
+    return mean, lower, upper
+
+def pyro_framewise_model(data):
+
+    num_reps, num_frames = data.shape
+
+    # weakly informative prior for frame means (centered at mean)
+    data_mean = float(data.mean().item())
+    mu0 = data_mean
+    mu_scale = 50.0  # wide prior over angle magnitudes
+
+    # sample mu and sigma for each frame (vector of length num_frames)
+    mu = pyro.sample("mu", dist.Normal(mu0, mu_scale).expand([num_frames]).to_event(1))
+    sigma = pyro.sample("sigma", dist.HalfCauchy(5.0).expand([num_frames]).to_event(1))
+
+    # Likelihood: data is shape (num_reps, num_frames)
+    # dist.Normal(mu, sigma) broadcasts to shape (num_reps, num_frames)
+    with pyro.plate("reps", num_reps):
+        pyro.sample("obs", dist.Normal(mu, sigma).to_event(1), obs=data)
+
+
+def run_mcmc(data, num_samples=1200, warmup_steps=400, num_chains=1):
+    nuts_kernel = NUTS(pyro_framewise_model, max_tree_depth=10)
+    mcmc = MCMC(nuts_kernel, num_samples=num_samples, warmup_steps=warmup_steps, num_chains=num_chains)
+    mcmc.run(data)
+    return mcmc.get_samples()  # returns dict('mu': tensor(samples, num_frames), 'sigma': ...)
+
+def summarize_and_plot(samples, data=None, cred = 0.9):
+    """
+    samples: dict with keys 'mu' and 'sigma'
+      mu: tensor shape (num_draws, num_frames)
+      sigma: tensor shape (num_draws, num_frames)
+    data: original data (num_reps, num_frames) optional for overlay
+    """
+    mu_samples = samples['mu']          # (num_draws, num_frames)
+    sigma_samples = samples['sigma']    # (num_draws, num_frames)
+    num_draws, num_frames = mu_samples.shape
+
+    # posterior mean and credible intervals for mu
+    mu_mean = mu_samples.mean(dim=0)
+    lower_q = (1 - cred) / 2.0
+    upper_q = 1 - lower_q
+    mu_lower = mu_samples.quantile(lower_q, dim=0)
+    mu_upper = mu_samples.quantile(upper_q, dim=0)
+
+    # posterior predictive CI for new observations (integrating mu & sigma)
+    # Draw posterior predictive draws:
+    # shape (num_draws, num_frames) of one-draw-per-sample
+    y_pred = dist.Normal(mu_samples, sigma_samples).sample()  # shape (num_draws, num_frames)
+    ypred_lower = y_pred.quantile(lower_q, dim=0)
+    ypred_upper = y_pred.quantile(upper_q, dim=0)
+    ypred_mean = y_pred.mean(dim=0)
+
+    frames = torch.arange(num_frames)
+
+    plt.figure(figsize=(10,6))
+
+    # posterior mean of mu
+    plt.plot(frames, mu_mean.numpy(), color='cyan', lw=2, label='posterior mean (mu)')
+    # credible interval for mu
+    plt.fill_between(frames, mu_lower.numpy(), mu_upper.numpy(), alpha=0.35, label=f'{int(cred*100)}% CI of mu', color = 'green')
+
+    # posterior predictive band (what new rep values likely look like)
+    plt.plot(frames, ypred_mean.numpy(), color='red', lw=1, label='posterior predictive mean')
+    plt.fill_between(frames, ypred_lower.numpy(), ypred_upper.numpy(), alpha=0.25, label=f'{int(cred*100)}% posterior predictive', color = 'purple')
+
+    plt.xlabel('frame')
+    plt.ylabel('angle')
+    plt.ylim(0,180)
+    plt.title('Framewise posterior & predictive intervals')
+    plt.legend()
+    plt.show()
