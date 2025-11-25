@@ -354,11 +354,11 @@ def summarize_and_plot(samples, data=None, cred = 0.9):
     # posterior mean of mu
     plt.plot(frames, mu_mean.numpy(), color='cyan', lw=2, label='posterior mean (mu)')
     # credible interval for mu
-    plt.fill_between(frames, mu_lower.numpy(), mu_upper.numpy(), alpha=0.35, label=f'{int(cred*100)}% CI of mu', color = 'green')
+    plt.fill_between(frames, mu_lower.numpy(), mu_upper.numpy(), alpha=0.35, label=f'{int(cred*100)}% CI of mu', color = 'purple')
 
     # posterior predictive band (what new rep values likely look like)
     plt.plot(frames, ypred_mean.numpy(), color='red', lw=1, label='posterior predictive mean')
-    plt.fill_between(frames, ypred_lower.numpy(), ypred_upper.numpy(), alpha=0.25, label=f'{int(cred*100)}% posterior predictive', color = 'purple')
+    plt.fill_between(frames, ypred_lower.numpy(), ypred_upper.numpy(), alpha=0.25, label=f'{int(cred*100)}% posterior predictive', color = 'green')
 
     plt.xlabel('frame')
     plt.ylabel('angle')
