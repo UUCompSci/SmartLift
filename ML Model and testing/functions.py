@@ -349,7 +349,7 @@ def summarize_and_plot(samples, data=None, cred = 0.9):
 
     frames = torch.arange(num_frames)
 
-    plt.figure(figsize=(10,6))
+    plt.figure(figsize=(8,6))
 
     # posterior mean of mu
     plt.plot(frames, mu_mean.numpy(), color='cyan', lw=2, label='posterior mean (mu)')
