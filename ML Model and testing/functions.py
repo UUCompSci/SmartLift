@@ -352,7 +352,8 @@ def summarize_and_plot(samples, data=None, cred = 0.9):
     plt.figure(figsize=(8,6))
 
     # posterior mean of mu
-    plt.plot(frames, mu_mean.numpy(), color='cyan', lw=2, label='posterior mean (mu)')
+    #plt.plot(frames, mu_mean.numpy(), color='cyan', lw=2, label='posterior mean (mu)')
+
     # credible interval for mu
     plt.fill_between(frames, mu_lower.numpy(), mu_upper.numpy(), alpha=0.35, label=f'{int(cred*100)}% CI of mu', color = 'purple')
 
