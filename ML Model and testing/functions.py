@@ -70,33 +70,35 @@ from pathlib import Path
 def save_lift_data(lift_name, new_points, new_angles, filename_tag):
     # Get path to this file (e.g., functions.py), then go up one level to project root
     script_dir = Path(__file__).resolve().parent.parent
-    data_dir = script_dir / 'lift data' / f"{lift_name} files"
+    data_dir = script_dir / 'lift data' / f"{lift_name.split(' ')[0]} files"
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    points_path = data_dir / f"{lift_name} points.npz"
-    angles_path = data_dir / f"{lift_name} angles.npz"
+    lift_data_path = data_dir / f"{lift_name} lift data.npz"
+    #angles_path = data_dir / f"{lift_name} angles.npz"
 
     # Load existing .npz contents if they exist
-    if points_path.exists():
-        existing_points = dict(np.load(points_path, allow_pickle=True))
+    if lift_data_path.exists():
+        existing_data = dict(np.load(lift_data_path, allow_pickle=True))
     else:
-        existing_points = {}
+        existing_data = {}
 
-    if angles_path.exists():
+    '''if angles_path.exists():
         existing_angles = dict(np.load(angles_path, allow_pickle=True))
     else:
-        existing_angles = {}
+        existing_angles = {}'''
+
 
     # Add new data to existing
     for k, v in new_points.items():
-        existing_points[f"{filename_tag}_{k}"] = v
+
+        existing_data[f"{filename_tag}_{k}"] = v
 
     for k, v in new_angles.items():
-        existing_angles[f"{filename_tag}_{k}"] = v
+        existing_data[f"{filename_tag}_{k}"] = v
 
     # Save combined data
-    np.savez(points_path, **existing_points)
-    np.savez(angles_path, **existing_angles)
+    np.savez(lift_data_path, **existing_data)
+    #np.savez(angles_path, **existing_angles)
 
 
 
@@ -184,9 +186,9 @@ def split_lifts_into_reps(lift_name: str, lift_list: List[dict], joint) -> List[
         motion_signal = angles[motion_joint]
 
         if lift_name == 'deadlift':
-            depth_thresh, rise_thresh = 110, 170
+            depth_thresh, rise_thresh = 110, 160
         if lift_name == 'squat':
-            depth_thresh, rise_thresh = 100, 170
+            depth_thresh, rise_thresh = 100, 160
         if lift_name == 'bench':
             depth_thresh, rise_thresh = 100, 160
 
@@ -214,25 +216,31 @@ def split_lifts_into_reps(lift_name: str, lift_list: List[dict], joint) -> List[
     return rep_samples
 
 
-def get_rep_ranges(lift_name: str, joint_tensor: torch.Tensor, depth_thresh, rise_thresh, min_frames=4):
+def get_rep_ranges(lift_name: str, joint_tensor: torch.Tensor, depth_thresh, rise_thresh, min_frames=15):
 
     signal = joint_tensor
     rep_ranges = []
     in_rep = False
+
     start = 1
     peaks, valleys = [], []
     if lift_name != "deadlift":
+        depth_achieved = False
         for i in range(1, len(signal)):
             if signal[i] < rise_thresh and not in_rep:
                 in_rep = True
                 start = i
             elif signal[i] > rise_thresh and in_rep:
                 end = i
-                if end - start >= min_frames:
+                if end - start >= min_frames and depth_achieved == True:
                     rep_ranges.append((start, end))
                 start = None
                 in_rep = False
                 continue
+
+            if signal[i] <= depth_thresh and in_rep:
+                depth_achieved = True
+
     else:
         start = 1
         ascending = True
@@ -321,7 +329,7 @@ def run_mcmc(data, num_samples=1200, warmup_steps=400, num_chains=1):
     mcmc.run(data)
     return mcmc.get_samples()  # returns dict('mu': tensor(samples, num_frames), 'sigma': ...)
 
-def summarize_and_plot(samples, data=None, cred = 0.9):
+def summarize_and_plot(samples, data=None, cred = 0.9, title=None):
     """
     samples: dict with keys 'mu' and 'sigma'
       mu: tensor shape (num_draws, num_frames)
@@ -364,6 +372,56 @@ def summarize_and_plot(samples, data=None, cred = 0.9):
     plt.xlabel('frame')
     plt.ylabel('angle')
     plt.ylim(0,180)
-    plt.title('Framewise posterior & predictive intervals')
+    plt.title(f'{title} posterior & predictive intervals')
+    plt.legend()
+    plt.show()
+
+
+def summarize_and_plot_with_new_data(samples, data=None, cred = 0.9, title=None, new_data=None):
+    """
+    samples: dict with keys 'mu' and 'sigma'
+      mu: tensor shape (num_draws, num_frames)
+      sigma: tensor shape (num_draws, num_frames)
+    data: original data (num_reps, num_frames) optional for overlay
+    """
+    mu_samples = samples['mu']          # (num_draws, num_frames)
+    sigma_samples = samples['sigma']    # (num_draws, num_frames)
+    num_draws, num_frames = mu_samples.shape
+
+    # posterior mean and credible intervals for mu
+    mu_mean = mu_samples.mean(dim=0)
+    lower_q = (1 - cred) / 2.0
+    upper_q = 1 - lower_q
+    mu_lower = mu_samples.quantile(lower_q, dim=0)
+    mu_upper = mu_samples.quantile(upper_q, dim=0)
+
+    # posterior predictive CI for new observations (integrating mu & sigma)
+    # Draw posterior predictive draws:
+    # shape (num_draws, num_frames) of one-draw-per-sample
+    y_pred = dist.Normal(mu_samples, sigma_samples).sample()  # shape (num_draws, num_frames)
+    ypred_lower = y_pred.quantile(lower_q, dim=0)
+    ypred_upper = y_pred.quantile(upper_q, dim=0)
+    ypred_mean = y_pred.mean(dim=0)
+
+    frames = torch.arange(num_frames)
+
+    plt.figure(figsize=(8,6))
+
+    # posterior mean of mu
+    #plt.plot(frames, mu_mean.numpy(), color='cyan', lw=2, label='posterior mean (mu)')
+
+    # credible interval for mu
+    plt.fill_between(frames, mu_lower.numpy(), mu_upper.numpy(), alpha=0.35, label=f'{int(cred*100)}% CI of mu', color = 'purple')
+
+    # posterior predictive band (what new rep values likely look like)
+    plt.plot(frames, ypred_mean.numpy(), color='red', lw=1, label='posterior predictive mean')
+    plt.fill_between(frames, ypred_lower.numpy(), ypred_upper.numpy(), alpha=0.25, label=f'{int(cred*100)}% posterior predictive', color = 'green')
+
+    plt.plot(new_data)
+
+    plt.xlabel('frame')
+    plt.ylabel('angle')
+    plt.ylim(0,180)
+    plt.title(f'{title} posterior & predictive intervals')
     plt.legend()
     plt.show()
