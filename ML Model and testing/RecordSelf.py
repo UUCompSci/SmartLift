@@ -8,7 +8,7 @@ import functions
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use("TkAgg")  # Make sure Tkinter backend is used
+matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import torch
@@ -47,8 +47,8 @@ JOINTS_TO_TRACK = {
     "right_elbow": [mp_pose.PoseLandmark.RIGHT_SHOULDER, mp_pose.PoseLandmark.RIGHT_ELBOW, mp_pose.PoseLandmark.RIGHT_WRIST],
     "left_knee": [mp_pose.PoseLandmark.LEFT_HIP, mp_pose.PoseLandmark.LEFT_KNEE, mp_pose.PoseLandmark.LEFT_ANKLE],
     "right_knee": [mp_pose.PoseLandmark.RIGHT_HIP, mp_pose.PoseLandmark.RIGHT_KNEE, mp_pose.PoseLandmark.RIGHT_ANKLE],
-    "right_hip": [mp_pose.PoseLandmark.RIGHT_KNEE, mp_pose.PoseLandmark.RIGHT_HIP, mp_pose.PoseLandmark.RIGHT_SHOULDER],
     "left_hip": [mp_pose.PoseLandmark.LEFT_KNEE, mp_pose.PoseLandmark.LEFT_HIP, mp_pose.PoseLandmark.LEFT_SHOULDER],
+    "right_hip": [mp_pose.PoseLandmark.RIGHT_KNEE, mp_pose.PoseLandmark.RIGHT_HIP, mp_pose.PoseLandmark.RIGHT_SHOULDER],
     "left_shoulder": [mp_pose.PoseLandmark.LEFT_HIP, mp_pose.PoseLandmark.LEFT_SHOULDER, mp_pose.PoseLandmark.LEFT_ELBOW],
     "right_shoulder": [mp_pose.PoseLandmark.RIGHT_HIP, mp_pose.PoseLandmark.RIGHT_SHOULDER, mp_pose.PoseLandmark.RIGHT_ELBOW],
 }
@@ -74,7 +74,7 @@ class LiftRecorderApp:
         self.create_selection_ui()
 
     def create_selection_ui(self):
-        # Clear window
+
         for widget in self.root.winfo_children():
             widget.destroy()
 
@@ -97,7 +97,7 @@ class LiftRecorderApp:
             widget.destroy()
 
         # Expand window
-        self.root.geometry("1000x800")
+        self.root.geometry("1200x1000")
 
         # Video label
         self.video_label = tk.Label(self.root)
@@ -128,6 +128,8 @@ class LiftRecorderApp:
         if not ret:
             self.stop()
             return
+
+        frame = cv2.resize(frame, (960, 720))
 
         image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         image.flags.writeable = False
